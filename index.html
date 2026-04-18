@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🌱 Grow a Garden — 2D ферма с мутациями</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0a2f1f 0%, #051a0e 100%);
+            font-family: 'Segoe UI', 'Quicksand', system-ui, -apple-system, 'Poppins', sans-serif;
+            padding: 16px;
+        }
+
+        /* главный контейнер */
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #2d5a2c 0%, #1a3a1a 100%);
+            border-radius: 48px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.2);
+            border: 2px solid #c9a03d;
+        }
+
+        /* верхняя панель */
+        .top-bar {
+            display: flex;
+ flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            padding: 12px 24px;
+            margin-bottom: 25px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #ffefb9;
+            text-shadow: 0 2px 3px black;
+            font-size: 1.2rem;
+            background: #2a241aaa;
+            padding: 5px 16px;
+            border-radius: 40px;
+        }
+
+        .stat span:first-child {
+            font-size: 1.5rem;
+        }
+
+        .weather-panel {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #1f2a1bc9;
+            padding: 5px 20px;
+            border-radius: 50px;
+        }
+
+        .weather-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 3px gold);
+        }
+
+        .weather-name {
+            font-weight: bold;
+            color: #ffefb0;
+            font-size: 1rem;
+        }
+
+        /* магазин Сэма */
+        .shop-section {
+            background: linear-gradient(145deg, #5c3e1f, #3d2a12);
+            border-radius: 40px;
+            padding: 18px;
+            margin-bottom: 25px;
+            border: 1px solid #e9bc5a;
+            box-shadow: inset 0 1px 4px rgba(255,215,100,0.3), 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .shop-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .shop-header h2 {
+            margin: 0;
+            color: #ffdfa5;
+            text-shadow: 2px 2px 0 #5a3a1a;
+            font-size: 1.6rem;
+        }
+
+        .shop-timer {
+            background: #2a241a;
+            border-radius: 30px;
+            padding: 4px 14px;
+            font-size: 0.8rem;
+            color: #ffd966;
+        }
+
+        .shop-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .seed-card {
+            background: linear-gradient(135deg, #f9e0a0, #e2b85c);
+            border-radius: 60px;
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px black;
+            border: 1px solid #ffefb0;
+        }
+
+        .seed-card:active {
+            transform: scale(0.96);
+        }
+
+        .seed-emoji {
+            font-size: 2rem;
+        }
+
+        .seed-info {
+            font-weight: bold;
+            color: #2c1c0a;
+        }
+
+        .seed-price {
+            background: #000000aa;
+            padding: 2px 10px;
+            border-radius: 30px;
+            color: #ffd966;
+        }
+
+        /* грядки */
+        .garden-title {
+            color: #ffeaac;
+            margin: 10px 0 15px 10px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .plots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .plot {
+            background: radial-gradient(circle at 30% 20%, #5a3e2a, #3b2819);
+            border-radius: 24px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #b87c3a;
+            box-shadow: inset 0 1px 5px rgba(255,225,140,0.4), 0 6px 12px black;
+            position: relative;
+        }
+
+        .plot:hover {
+            transform: translateY(-4px);
+            border-color: #ffcf6e;
+        }
+
+        .plant-emoji {
+            font-size: 3.2rem;
+            filter: drop-shadow(2px 4px 6px black);
+        }
+
+        .plant-name {
+            font-weight: bold;
+            font-size: 0.75rem;
+            background: #1f1a10aa;
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 50px;
+            color: #ffefb0;
+            margin: 5px 0;
+        }
+
+        .growth-bar {
+            background: #2e2a1e;
+            border-radius: 20px;
+            height: 8px;
+            width: 90%;
+            margin: 6px auto;
+            overflow: hidden;
+        }
+
+        .growth-fill {
+            background: linear-gradient(90deg, #9bff6e, #44cc22);
+            width: 0%;
+            height: 100%;
+            border-radius: 20px;
+        }
+
+        .plot-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .btn-water, .btn-harvest, .btn-plant {
+            background: #2e7db3;
+            border: none;
+            color: white;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.1s linear;
+        }
+
+        .btn-harvest {
+            background: #c9a03d;
+        }
+
+        .btn-plant {
+            background: #5a7a3a;
+        }
+
+        .mutation-tag {
+            font-size: 0.6rem;
+            background: #ffaa33aa;
+            border-radius: 30px;
+            padding: 2px 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        /* питомцы */
+        .pets-section {
+            background: #1f2e1ac9;
+            backdrop-filter: blur(5px);
+            border-radius: 32px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .pets-flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .pet-card {
+            background: #3e2a1f;
+            border-radius: 50px;
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid gold;
+        }
+
+        button {
+            background: #e2b85c;
+            border: none;
+            border-radius: 40px;
+            font-weight: bold;
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px);}
+            100% { transform: translateY(-5px);}
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameRoot">
+    <div class="top-bar">
+        <div class="stats">
+            <div class="stat"><span>💰</span> <span id="sheckles">0</span></div>
+            <div class="stat"><span>🌱</span> <span id="totalSeeds">0</span></div>
+        </div>
+        <div class="weather-panel" id="weatherWidget">
+            <div class="weather-icon" id="weatherIcon">☀️</div>
+            <div class="weather-name" id="weatherName">Солнечно</div>
+        </div>
+    </div>
+
+    <!-- Магазин Сэма -->
+    <div class="shop-section">
+        <div class="shop-header">
+            <h2>🛒 Sam's Seed Shop</h2>
+            <div class="shop-timer">🔄 обновление: <span id="shopTimer">0</span>с</div>
+        </div>
+        <div class="shop-items" id="shopList"></div>
+    </div>
+
+    <div class="garden-title">🌻 МОЙ САД <span style="font-size:0.8rem;">(нажми на грядку чтобы посадить)</span></div>
+    <div class="plots-grid" id="plotsGrid"></div>
+
+    <!-- Питомцы-помощники -->
+    <div class="pets-section">
+        <div style="display: flex; gap: 10px; align-items: center;"><span>🐕 Питомцы (пассивные бонусы)</span> <span style="font-size:0.7rem;">💡 увеличивают мутации и рост</span></div>
+        <div class="pets-flex" id="petsList"></div>
+    </div>
+</div>
+
+<script>
+    // ------------------- ОРИГИНАЛЬНЫЕ ДАННЫЕ GROW A GARDEN -------------------
+    const SEEDS_DB = [
+        { id: "carrot", name: "🥕 Морковь", emoji: "🥕", price: 10, baseValue: 20, growthTime: 8,  rarity: "Common", multiHarvest: false },
+        { id: "strawberry", name: "🍓 Клубника", emoji: "🍓", price: 50, baseValue: 15, growthTime: 12, rarity: "Common", multiHarvest: true, regrowTime: 6 },
+        { id: "blueberry", name: "🫐 Черника", emoji: "🫐", price: 400, baseValue: 20, growthTime: 100, rarity: "Uncommon", multiHarvest: true, regrowTime: 20 },
+        { id: "bamboo", name: "🎋 Бамбук", emoji: "🎋", price: 4000, baseValue: 4000, growthTime: 12, rarity: "Rare", multiHarvest: false },
+        { id: "dragonfruit", name: "🐉 Драконий фрукт", emoji: "🐉", price: 50000, baseValue: 4750, growthTime: 302, rarity: "Legendary", multiHarvest: true, regrowTime: 9 },
+        { id: "mango", name: "🥭 Манго", emoji: "🥭", price: 100000, baseValue: 6500, growthTime: 100, rarity: "Mythical", multiHarvest: true, regrowTime: 40 },
+        { id: "grape", name: "🍇 Виноград", emoji: "🍇", price: 850000, baseValue: 7850, growthTime: 200, rarity: "Divine", multiHarvest: true, regrowTime: 20 },
+        { id: "sugarapple", name: "🍬 Сахарное яблоко", emoji: "🍎✨", price: 5000000, baseValue: 125000, growthTime: 2400, rarity: "Transcendent", multiHarvest: false }
+    ];
+
+    // мутации (полный список из игры)
+    const MUTATIONS = {
+        "gold": { name: "✨ Золотая", emoji: "🏆", multiplier: 20, chance: 0.08, weather: null },
+        "rainbow": { name: "🌈 Радужная", emoji: "🌈", multiplier: 50, chance: 0.04, weather: null },
+        "wet": { name: "💧 Мокрая", emoji: "💧", multiplier: 2, chance: 0.25, weather: "rainy" },
+        "chilled": { name: "❄️ Охлаждённая", emoji: "❄️", multiplier: 4, chance: 0.18, weather: "frost" },
+        "frozen": { name: "🧊 Ледяная", emoji: "🧊", multiplier: 10, chance: 0.08, weather: "frost" },
+        "shocked": { name: "⚡ Шокированная", emoji: "⚡", multiplier: 100, chance: 0.05, weather: "storm" },
+        "moonlit": { name: "🌙 Лунная", emoji: "🌙", multiplier: 15, chance: 0.12, weather: "night" },
+        "celestial": { name: "🌟 Небесная", emoji: "🌟", multiplier: 120, chance: 0.02, weather: null }
+    };
+
+    // Питомцы с бонусами
+    const PETS = [
+        { id: "polarbear", name: "🐻‍❄️ Белый медведь", emoji: "🐻‍❄️", bonus: "frozen", bonusChance: 0.10, owned: true },
+        { id: "macaw", name: "🦜 Ара", emoji: "🦜", bonus: "rainbow", bonusChance: 0.16, owned: false, price: 150000 },
+        { id: "dragonfly", name: "🐉 Стрекоза", emoji: "🦋", bonus: "gold", bonusChance: 0.12, owned: false, price: 750000 },
+        { id: "kitsune", name: "🦊 Кицунэ", emoji: "🦊", bonus: "celestial", bonusChance: 0.05, owned: false, price: 5000000 }
+    ];
+
+    let garden = []; // массив растений
+    let player = { sheckles: 15000, inventory: {} };
+    let currentWeather = "sunny";
+    let weatherInterval;
+    let shopInterval;
+    let shopRefreshCounter = 0;
+    let shopInventory = []; // список семян в магазине (5 штук)
+
+    // инициализация инвентаря
+    SEEDS_DB.forEach(seed => { player.inventory[seed.id] = 0; });
+    player.inventory["carrot"] = 3;
+    player.inventory["strawberry"] = 1;
+
+    // --- загрузка / сохранение ---
+    function saveGame() {
+        localStorage.setItem("grow2d_save", JSON.stringify({
+            garden, player, currentWeather, shopInventory, lastTime: Date.now()
+        }));
+    }
+
+    function loadGame() {
+        const raw = localStorage.getItem("grow2d_save");
+        if(raw) {
+            try {
+                const data = JSON.parse(raw);
+                garden = data.garden || [];
+                player = data.player || player;
+                currentWeather = data.currentWeather || "sunny";
+                shopInventory = data.shopInventory || [];
+                const last = data.lastTime || Date.now();
+                const deltaSec = Math.min(86400, (Date.now() - last) / 1000);
+                if(deltaSec > 0 && garden.length) {
+                    for(let i=0;i<garden.length;i++) {
+                        const p = garden[i];
+                        if(p && !p.isHarvestable) {
+                            let weatherBonus = 1;
+                            if(currentWeather === "rainy") weatherBonus = 1.5;
+                            if(currentWeather === "frost") weatherBonus = 1.5;
+                            if(currentWeather === "storm") weatherBonus = 1.1;
+                            let growSpeed = 1 * weatherBonus;
+                            if(p.petBonus) growSpeed *= 1.1;
+                            let added = deltaSec * growSpeed * 0.7;
+                            p.growth = Math.min(p.maxGrowth, p.growth + added);
+                            if(p.growth >= p.maxGrowth) p.isHarvestable = true;
+                        }
+                    }
+                }
+                if(!player.inventory) player.inventory = {};
+                SEEDS_DB.forEach(s => { if(player.inventory[s.id]===undefined) player.inventory[s.id]=0; });
+                renderAll();
+            } catch(e) { initFresh(); }
+        } else { initFresh(); }
+        renderAll();
+    }
+
+    function initFresh() {
+        garden = [];
+        for(let i=0;i<12;i++) garden.push(null);
+        player.sheckles = 15000;
+        player.inventory = {};
+        SEEDS_DB.forEach(seed => { player.inventory[seed.id] = 0; });
+        player.inventory["carrot"] = 3;
+        player.inventory["strawberry"] = 1;
+        refreshShop();
+    }
+
+    // обновление магазина (5 случайных семян)
+    function refreshShop() {
+        shopInventory = [];
+        const shuffled = [...SEEDS_DB];
+        for(let i=shuffled.length - 1; i > 0; i--){
+            const j = Math.floor(Math.random()*(i+1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        shopInventory = shuffled.slice(0,5);
+        shopRefreshCounter = 300; // 5 минут
+        renderShop();
+        saveGame();
+    }
+
+    // мутация с учётом погоды и питомцев
+    function applyMutation(seedId, weather, petList) {
+        let baseChance = 0.06;
+        let finalMut = null;
+        let availableMuts = Object.entries(MUTATIONS).filter(([key, m]) => !m.weather || m.weather === weather);
+        for(let [mutId, mut] of availableMuts) {
+            let chance = mut.chance;
+            for(let pet of petList) {
+                if(pet.owned && pet.bonus === mutId) chance += pet.bonusChance;
+            }
+            if(Math.random() < chance) {
+                finalMut = mutId;
+                break;
+            }
+        }
+        if(Math.random() < 0.03 && !finalMut) finalMut = "gold";
+        if(Math.random() < 0.02 && !finalMut) finalMut = "rainbow";
+        return finalMut;
+    }
+
+    // посадка
+    function plantSeed(plotIdx, seedId) {
+        if(garden[plotIdx] !== null) return;
+        if(!player.inventory[seedId] || player.inventory[seedId] <= 0) return;
+        const seed = SEEDS_DB.find(s => s.id === seedId);
+        if(!seed) return;
+        player.inventory[seedId]--;
+        const ownedPets = PETS.filter(p => p.owned);
+        const mutation = applyMutation(seedId, currentWeather, ownedPets);
+        let maxGrowthVal = seed.growthTime + (Math.random() * 10 - 5);
+        if(maxGrowthVal < 5) maxGrowthVal = 5;
+        garden[plotIdx] = {
+            seedId: seedId,
+            growth: 0,
+            maxGrowth: maxGrowthVal,
+            mutation: mutation,
+            isHarvestable: false,
+            multiHarvestCount: seed.multiHarvest ? 0 : null,
+            baseValue: seed.baseValue
+        };
+        renderAll();
+        saveGame();
+    }
+
+    function waterPlant(idx) {
+        const p = garden[idx];
+        if(!p || p.isHarvestable) return;
+        let add = 15 + Math.random() * 18;
+        if(currentWeather === "rainy") add += 12;
+        p.growth = Math.min(p.maxGrowth, p.growth + add);
+        if(p.growth >= p.maxGrowth) p.isHarvestable = true;
+        renderAll();
+        saveGame();
+    }
+
+    function harvestPlant(idx) {
+        const p = garden[idx];
+        if(!p || !p.isHarvestable) return;
+        const seedDef = SEEDS_DB.find(s => s.id === p.seedId);
+        let value = p.baseValue;
+        let mult = 1;
+        if(p.mutation && MUTATIONS[p.mutation]) mult = MUTATIONS[p.mutation].multiplier;
+        let reward = Math.floor(value * mult);
+        player.sheckles += reward;
+
+        // шанс вернуть семя
+        if(Math.random() < 0.35) player.inventory[p.seedId]++;
+
+        if(seedDef.multiHarvest && p.multiHarvestCount !== undefined && p.multiHarvestCount < 5) {
+            p.multiHarvestCount = (p.multiHarvestCount || 0) + 1;
+            p.growth = 0;
+            p.isHarvestable = false;
+            if(p.multiHarvestCount >= 5) garden[idx] = null;
+        } else {
+            garden[idx] = null;
+        }
+        renderAll();
+        saveGame();
+    }
+
+    function buySeedFromShop(seedId) {
+        const seed = SEEDS_DB.find(s => s.id === seedId);
+        if(!seed) return;
+        if(player.sheckles >= seed.price) {
+            player.sheckles -= seed.price;
+            player.inventory[seedId]++;
+            renderAll();
+            saveGame();
+        }
+    }
+
+    function buyPet(petId) {
+        const pet = PETS.find(p => p.id === petId);
+        if(!pet || pet.owned) return;
+        if(player.sheckles >= pet.price) {
+            player.sheckles -= pet.price;
+            pet.owned = true;
+            renderAll();
+            saveGame();
+        }
+    }
+
+    // погода (циклы)
+    function startWeatherCycle() {
+        const weathers = [
+            { id: "sunny", name: "☀️ Солнечно", icon: "☀️", duration: 90 },
+            { id: "rainy", name: "🌧️ Дождь", icon: "🌧️", duration: 75 },
+            { id: "frost", name: "❄️ Мороз", icon: "❄️", duration: 70 },
+            { id: "storm", name: "⛈️ Гроза", icon: "⛈️", duration: 65 },
+            { id: "night", name: "🌙 Ночь", icon: "🌙", duration: 80 }
+        ];
+        let index = 0;
+        function updateWeather() {
+            const w = weathers[index % weathers.length];
+            currentWeather = w.id;
+            document.getElementById("weatherIcon").innerHTML = w.icon;
+            document.getElementById("weatherName").innerHTML = w.name;
+            index++;
+            setTimeout(updateWeather, w.duration * 1000);
+        }
+        updateWeather();
+    }
+
+    function renderShop() {
+        const container = document.getElementById("shopList");
+        if(!container) return;
+        container.innerHTML = "";
+        for(let seed of shopInventory) {
+            const div = document.createElement("div");
+            div.className = "seed-card";
+            div.onclick = () => buySeedFromShop(seed.id);
+            div.innerHTML = `
+                <div class="seed-emoji">${seed.emoji}</div>
+                <div class="seed-info"><b>${seed.name}</b><br/>💰${seed.price}</div>
+                <div class="seed-price">${seed.rarity}</div>
+            `;
+            container.appendChild(div);
+        }
+    }
+
+    function renderPlots() {
+        const grid = document.getElementById("plotsGrid");
+        if(!grid) return;
+        grid.innerHTML = "";
+        for(let i=0;i<12;i++) {
+            const p = garden[i];
+            const isEmpty = !p;
+            let emoji = "🌾";
+            let plantTitle = "Пустая грядка";
+            let mutationSpan = "";
+            let growthPercent = 0;
+            let harvestBtn = "", waterBtn = "", plantBtn = "";
+            if(!isEmpty) {
+                const seed = SEEDS_DB.find(s => s.id === p.seedId);
+                let baseEmoji = seed ? seed.emoji : "🌿";
+                if(p.mutation && MUTATIONS[p.mutation]) {
+                    emoji = MUTATIONS[p.mutation].emoji + " " + baseEmoji;
+                    plantTitle = `${seed.name} [${MUTATIONS[p.mutation].name}]`;
+                    mutationSpan = `<div class="mutation-tag">✨ ${MUTATIONS[p.mutation].name} ✨</div>`;
+                } else {
+                    emoji = baseEmoji;
+                    plantTitle = seed.name;
+                }
+                growthPercent = (p.growth / p.maxGrowth) * 100;
+                if(p.isHarvestable) {
+                    harvestBtn = `<button class="btn-harvest" data-harvest="${i}">🍎 Собрать</button>`;
+                } else {
+                    waterBtn = `<button class="btn-water" data-water="${i}">💧 Полить</button>`;
+                }
+            } else {
+                plantBtn = `<button class="btn-plant" data-plant="${i}">🌱 Посадить</button>`;
+            }
+
+            const plotDiv = document.createElement("div");
+            plotDiv.className = "plot";
+            plotDiv.innerHTML = `
+                <div class="plant-emoji">${emoji}</div>
+                <div class="plant-name">${plantTitle}</div>
+                ${!isEmpty ? `<div class="growth-bar"><div class="growth-fill" style="width: ${growthPercent}%;"></div></div>` : ""}
+                ${mutationSpan}
+                <div class="plot-actions">
+                    ${waterBtn} ${harvestBtn} ${plantBtn}
+                </div>
+            `;
+            grid.appendChild(plotDiv);
+        }
+
+        // события
+        document.querySelectorAll("[data-water]").forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); waterPlant(parseInt(btn.dataset.water)); };
+        });
+        document.querySelectorAll("[data-harvest]").forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); harvestPlant(parseInt(btn.dataset.harvest)); };
+        });
+        document.querySelectorAll("[data-plant]").forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); showPlantMenu(parseInt(btn.dataset.plant)); };
+        });
+    }
+
+    function showPlantMenu(idx) {
+        let msg = "Выбери семена:\n";
+        const ownedList = Object.entries(player.inventory).filter(([id, count]) => count > 0);
+        if(ownedList.length === 0) { alert("Нет семян! Купи в магазине."); return; }
+        ownedList.forEach(([id, count]) => {
+            const seed = SEEDS_DB.find(s => s.id === id);
+            if(seed) msg += `${seed.id} : ${seed.name} (${count} шт.)\n`;
+        });
+        const chosen = prompt(msg + "\nВведите ID семени:");
+        if(chosen && player.inventory[chosen] > 0) plantSeed(idx, chosen);
+        else alert("неверный id или нет семян");
+    }
+
+    function renderPets() {
+        const container = document.getElementById("petsList");
+        if(!container) return;
+        container.innerHTML = "";
+        PETS.forEach(pet => {
+            const div = document.createElement("div");
+            div.className = "pet-card";
+            if(!pet.owned) {
+                div.style.opacity = "0.7";
+                div.onclick = () => buyPet(pet.id);
+                div.innerHTML = `${pet.emoji} ${pet.name} <span style="background:black;padding:2px 8px;border-radius:30px;">💰${pet.price.toLocaleString()}</span> <button>Купить</button>`;
+            } else {
+                div.innerHTML = `${pet.emoji} ${pet.name} <span style="color:#ffd966;">✅ активен</span>`;
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function renderAll() {
+        document.getElementById("sheckles").innerText = Math.floor(player.sheckles).toLocaleString();
+        let totalSeeds = Object.values(player.inventory).reduce((a,b)=>a+b,0);
+        document.getElementById("totalSeeds").innerText = totalSeeds;
+        renderPlots();
+        renderShop();
+        renderPets();
+        if(document.getElementById("shopTimer")) {
+            let mins = Math.floor(shopRefreshCounter/60);
+            let secs = shopRefreshCounter%60;
+            document.getElementById("shopTimer").innerText = `${mins}:${secs<10?'0'+secs:secs}`;
+        }
+    }
+
+    // таймеры обновления
+    setInterval(() => {
+        if(shopRefreshCounter > 0) {
+            shopRefreshCounter--;
+            if(shopRefreshCounter <= 0) refreshShop();
+            renderAll();
+        }
+        for(let i=0;i<garden.length;i++) {
+            const p = garden[i];
+            if(p && !p.isHarvestable) {
+                let weatherBonus = (currentWeather==="rainy"||currentWeather==="frost")?1.5:1;
+                if(currentWeather==="storm") weatherBonus=1.1;
+                let add = (1.2 + (currentWeather==="sunny"?0.8:0)) * weatherBonus;
+                p.growth = Math.min(p.maxGrowth, p.growth + add);
+                if(p.growth >= p.maxGrowth) p.isHarvestable = true;
+            }
+        }
+        renderAll();
+        saveGame();
+    }, 2000);
+
+    window.onload = () => {
+        loadGame();
+        startWeatherCycle();
+        setInterval(() => { renderAll(); saveGame(); }, 3000);
+    };
+</script>
+</body>
+</html>
