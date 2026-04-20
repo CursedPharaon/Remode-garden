@@ -2,37 +2,43 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>🌱 Grow a Garden — 2D ферма с мутациями</title>
     <style>
         * {
             user-select: none;
-            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation; /* запрещает масштабирование при двойном тапе */
         }
 
         body {
             margin: 0;
             min-height: 100vh;
             background: linear-gradient(145deg, #0a2f1f 0%, #051a0e 100%);
-            font-family: 'Segoe UI', 'Quicksand', system-ui, -apple-system, 'Poppins', sans-serif;
+            font-family: 'Segoe UI', 'Quicksand', system-ui, sans-serif;
             padding: 16px;
+            overflow-x: hidden;
+            touch-action: pan-y pinch-zoom; /* разрешаем скролл, но pinch-zoom оставляем (браузерное) - на самом деле лучше запретить */
+        }
+        
+        /* полный запрет зума на всех элементах */
+        .game-container, .plot, button, .seed-card, .shop-section, .pets-section {
+            touch-action: manipulation;
         }
 
-        /* главный контейнер */
         .game-container {
             max-width: 1400px;
             margin: 0 auto;
             background: linear-gradient(135deg, #2d5a2c 0%, #1a3a1a 100%);
             border-radius: 48px;
             padding: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             border: 2px solid #c9a03d;
         }
 
-        /* верхняя панель */
         .top-bar {
             display: flex;
- flex-wrap: wrap;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             gap: 15px;
@@ -61,10 +67,6 @@
             border-radius: 40px;
         }
 
-        .stat span:first-child {
-            font-size: 1.5rem;
-        }
-
         .weather-panel {
             display: flex;
             align-items: center;
@@ -74,30 +76,22 @@
             border-radius: 50px;
         }
 
-        .weather-icon {
-            font-size: 2rem;
-            filter: drop-shadow(0 0 3px gold);
-        }
+        .weather-icon { font-size: 2rem; }
+        .weather-name { font-weight: bold; color: #ffefb0; }
 
-        .weather-name {
-            font-weight: bold;
-            color: #ffefb0;
-            font-size: 1rem;
-        }
-
-        /* магазин Сэма */
         .shop-section {
             background: linear-gradient(145deg, #5c3e1f, #3d2a12);
             border-radius: 40px;
             padding: 18px;
             margin-bottom: 25px;
             border: 1px solid #e9bc5a;
-            box-shadow: inset 0 1px 4px rgba(255,215,100,0.3), 0 5px 15px rgba(0,0,0,0.3);
         }
 
         .shop-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
             gap: 12px;
             margin-bottom: 15px;
         }
@@ -112,9 +106,10 @@
         .shop-timer {
             background: #2a241a;
             border-radius: 30px;
-            padding: 4px 14px;
-            font-size: 0.8rem;
+            padding: 6px 16px;
+            font-size: 1rem;
             color: #ffd966;
+            font-weight: bold;
         }
 
         .shop-items {
@@ -135,36 +130,18 @@
             transition: all 0.2s;
             box-shadow: 0 4px 8px black;
             border: 1px solid #ffefb0;
+            touch-action: manipulation;
         }
 
-        .seed-card:active {
-            transform: scale(0.96);
-        }
+        .seed-card:active { transform: scale(0.96); }
+        .seed-emoji { font-size: 2rem; }
+        .seed-info { font-weight: bold; color: #2c1c0a; }
+        .seed-price { background: #000000aa; padding: 2px 10px; border-radius: 30px; color: #ffd966; }
 
-        .seed-emoji {
-            font-size: 2rem;
-        }
-
-        .seed-info {
-            font-weight: bold;
-            color: #2c1c0a;
-        }
-
-        .seed-price {
-            background: #000000aa;
-            padding: 2px 10px;
-            border-radius: 30px;
-            color: #ffd966;
-        }
-
-        /* грядки */
         .garden-title {
             color: #ffeaac;
             margin: 10px 0 15px 10px;
             font-size: 1.4rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .plots-grid {
@@ -180,85 +157,22 @@
             padding: 12px 8px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
             border: 2px solid #b87c3a;
             box-shadow: inset 0 1px 5px rgba(255,225,140,0.4), 0 6px 12px black;
-            position: relative;
+            touch-action: manipulation;
         }
 
-        .plot:hover {
-            transform: translateY(-4px);
-            border-color: #ffcf6e;
-        }
+        .plot:hover { transform: translateY(-4px); border-color: #ffcf6e; }
+        .plant-emoji { font-size: 3rem; }
+        .plant-name { font-weight: bold; font-size: 0.75rem; background: #1f1a10aa; display: inline-block; padding: 2px 10px; border-radius: 50px; color: #ffefb0; margin: 5px 0; }
+        .growth-bar { background: #2e2a1e; border-radius: 20px; height: 8px; width: 90%; margin: 6px auto; overflow: hidden; }
+        .growth-fill { background: linear-gradient(90deg, #9bff6e, #44cc22); width: 0%; height: 100%; border-radius: 20px; }
+        .plot-actions { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+        .btn-water, .btn-harvest, .btn-plant { background: #2e7db3; border: none; color: white; font-size: 0.7rem; padding: 4px 8px; border-radius: 30px; cursor: pointer; touch-action: manipulation; }
+        .btn-harvest { background: #c9a03d; }
+        .btn-plant { background: #5a7a3a; }
+        .mutation-tag { font-size: 0.6rem; background: #ffaa33aa; border-radius: 30px; padding: 2px 6px; display: inline-block; margin-top: 4px; }
 
-        .plant-emoji {
-            font-size: 3.2rem;
-            filter: drop-shadow(2px 4px 6px black);
-        }
-
-        .plant-name {
-            font-weight: bold;
-            font-size: 0.75rem;
-            background: #1f1a10aa;
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 50px;
-            color: #ffefb0;
-            margin: 5px 0;
-        }
-
-        .growth-bar {
-            background: #2e2a1e;
-            border-radius: 20px;
-            height: 8px;
-            width: 90%;
-            margin: 6px auto;
-            overflow: hidden;
-        }
-
-        .growth-fill {
-            background: linear-gradient(90deg, #9bff6e, #44cc22);
-            width: 0%;
-            height: 100%;
-            border-radius: 20px;
-        }
-
-        .plot-actions {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-            margin-top: 8px;
-        }
-
-        .btn-water, .btn-harvest, .btn-plant {
-            background: #2e7db3;
-            border: none;
-            color: white;
-            font-size: 0.7rem;
-            padding: 4px 8px;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: 0.1s linear;
-        }
-
-        .btn-harvest {
-            background: #c9a03d;
-        }
-
-        .btn-plant {
-            background: #5a7a3a;
-        }
-
-        .mutation-tag {
-            font-size: 0.6rem;
-            background: #ffaa33aa;
-            border-radius: 30px;
-            padding: 2px 6px;
-            display: inline-block;
-            margin-top: 4px;
-        }
-
-        /* питомцы */
         .pets-section {
             background: #1f2e1ac9;
             backdrop-filter: blur(5px);
@@ -266,35 +180,11 @@
             padding: 15px;
             margin-top: 10px;
         }
-
-        .pets-flex {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .pet-card {
-            background: #3e2a1f;
-            border-radius: 50px;
-            padding: 8px 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 1px solid gold;
-        }
-
-        button {
-            background: #e2b85c;
-            border: none;
-            border-radius: 40px;
-            font-weight: bold;
-        }
-
-        @keyframes floating {
-            0% { transform: translateY(0px);}
-            100% { transform: translateY(-5px);}
+        .pets-flex { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 10px; }
+        .pet-card { background: #3e2a1f; border-radius: 50px; padding: 8px 18px; display: flex; align-items: center; gap: 12px; border: 1px solid gold; cursor: pointer; touch-action: manipulation; }
+        
+        button, .seed-card, .plot, .pet-card {
+            touch-action: manipulation;
         }
     </style>
 </head>
@@ -311,29 +201,26 @@
         </div>
     </div>
 
-    <!-- Магазин Сэма -->
     <div class="shop-section">
         <div class="shop-header">
             <h2>🛒 Sam's Seed Shop</h2>
-            <div class="shop-timer">🔄 обновление: <span id="shopTimer">0</span>с</div>
+            <div class="shop-timer">🔄 обновление: <span id="shopTimer">5:00</span></div>
         </div>
         <div class="shop-items" id="shopList"></div>
     </div>
 
-    <div class="garden-title">🌻 МОЙ САД <span style="font-size:0.8rem;">(нажми на грядку чтобы посадить)</span></div>
+    <div class="garden-title">🌻 МОЙ САД</div>
     <div class="plots-grid" id="plotsGrid"></div>
 
-    <!-- Питомцы-помощники -->
     <div class="pets-section">
-        <div style="display: flex; gap: 10px; align-items: center;"><span>🐕 Питомцы (пассивные бонусы)</span> <span style="font-size:0.7rem;">💡 увеличивают мутации и рост</span></div>
+        <div style="display: flex; gap: 10px; align-items: center;"><span>🐕 Питомцы (пассивные бонусы)</span></div>
         <div class="pets-flex" id="petsList"></div>
     </div>
 </div>
 
 <script>
-    // ------------------- ОРИГИНАЛЬНЫЕ ДАННЫЕ GROW A GARDEN -------------------
     const SEEDS_DB = [
-        { id: "carrot", name: "🥕 Морковь", emoji: "🥕", price: 10, baseValue: 20, growthTime: 8,  rarity: "Common", multiHarvest: false },
+        { id: "carrot", name: "🥕 Морковь", emoji: "🥕", price: 10, baseValue: 20, growthTime: 8, rarity: "Common", multiHarvest: false },
         { id: "strawberry", name: "🍓 Клубника", emoji: "🍓", price: 50, baseValue: 15, growthTime: 12, rarity: "Common", multiHarvest: true, regrowTime: 6 },
         { id: "blueberry", name: "🫐 Черника", emoji: "🫐", price: 400, baseValue: 20, growthTime: 100, rarity: "Uncommon", multiHarvest: true, regrowTime: 20 },
         { id: "bamboo", name: "🎋 Бамбук", emoji: "🎋", price: 4000, baseValue: 4000, growthTime: 12, rarity: "Rare", multiHarvest: false },
@@ -343,19 +230,17 @@
         { id: "sugarapple", name: "🍬 Сахарное яблоко", emoji: "🍎✨", price: 5000000, baseValue: 125000, growthTime: 2400, rarity: "Transcendent", multiHarvest: false }
     ];
 
-    // мутации (полный список из игры)
     const MUTATIONS = {
-        "gold": { name: "✨ Золотая", emoji: "🏆", multiplier: 20, chance: 0.08, weather: null },
-        "rainbow": { name: "🌈 Радужная", emoji: "🌈", multiplier: 50, chance: 0.04, weather: null },
+        "gold": { name: "✨ Золотая", emoji: "🏆", multiplier: 20, chance: 0.08 },
+        "rainbow": { name: "🌈 Радужная", emoji: "🌈", multiplier: 50, chance: 0.04 },
         "wet": { name: "💧 Мокрая", emoji: "💧", multiplier: 2, chance: 0.25, weather: "rainy" },
         "chilled": { name: "❄️ Охлаждённая", emoji: "❄️", multiplier: 4, chance: 0.18, weather: "frost" },
         "frozen": { name: "🧊 Ледяная", emoji: "🧊", multiplier: 10, chance: 0.08, weather: "frost" },
         "shocked": { name: "⚡ Шокированная", emoji: "⚡", multiplier: 100, chance: 0.05, weather: "storm" },
         "moonlit": { name: "🌙 Лунная", emoji: "🌙", multiplier: 15, chance: 0.12, weather: "night" },
-        "celestial": { name: "🌟 Небесная", emoji: "🌟", multiplier: 120, chance: 0.02, weather: null }
+        "celestial": { name: "🌟 Небесная", emoji: "🌟", multiplier: 120, chance: 0.02 }
     };
 
-    // Питомцы с бонусами
     const PETS = [
         { id: "polarbear", name: "🐻‍❄️ Белый медведь", emoji: "🐻‍❄️", bonus: "frozen", bonusChance: 0.10, owned: true },
         { id: "macaw", name: "🦜 Ара", emoji: "🦜", bonus: "rainbow", bonusChance: 0.16, owned: false, price: 150000 },
@@ -363,23 +248,21 @@
         { id: "kitsune", name: "🦊 Кицунэ", emoji: "🦊", bonus: "celestial", bonusChance: 0.05, owned: false, price: 5000000 }
     ];
 
-    let garden = []; // массив растений
+    let garden = [];
     let player = { sheckles: 15000, inventory: {} };
     let currentWeather = "sunny";
     let weatherInterval;
-    let shopInterval;
-    let shopRefreshCounter = 0;
-    let shopInventory = []; // список семян в магазине (5 штук)
+    let shopRefreshCounter = 300;
+    let shopInventory = [];
+    let shopTimerInterval;
 
-    // инициализация инвентаря
     SEEDS_DB.forEach(seed => { player.inventory[seed.id] = 0; });
     player.inventory["carrot"] = 3;
     player.inventory["strawberry"] = 1;
 
-    // --- загрузка / сохранение ---
     function saveGame() {
         localStorage.setItem("grow2d_save", JSON.stringify({
-            garden, player, currentWeather, shopInventory, lastTime: Date.now()
+            garden, player, currentWeather, shopInventory, lastTime: Date.now(), shopRefreshCounter
         }));
     }
 
@@ -392,6 +275,7 @@
                 player = data.player || player;
                 currentWeather = data.currentWeather || "sunny";
                 shopInventory = data.shopInventory || [];
+                shopRefreshCounter = data.shopRefreshCounter ?? 300;
                 const last = data.lastTime || Date.now();
                 const deltaSec = Math.min(86400, (Date.now() - last) / 1000);
                 if(deltaSec > 0 && garden.length) {
@@ -402,9 +286,7 @@
                             if(currentWeather === "rainy") weatherBonus = 1.5;
                             if(currentWeather === "frost") weatherBonus = 1.5;
                             if(currentWeather === "storm") weatherBonus = 1.1;
-                            let growSpeed = 1 * weatherBonus;
-                            if(p.petBonus) growSpeed *= 1.1;
-                            let added = deltaSec * growSpeed * 0.7;
+                            let added = deltaSec * weatherBonus * 0.7;
                             p.growth = Math.min(p.maxGrowth, p.growth + added);
                             if(p.growth >= p.maxGrowth) p.isHarvestable = true;
                         }
@@ -416,6 +298,7 @@
             } catch(e) { initFresh(); }
         } else { initFresh(); }
         renderAll();
+        startShopTimer();
     }
 
     function initFresh() {
@@ -429,7 +312,6 @@
         refreshShop();
     }
 
-    // обновление магазина (5 случайных семян)
     function refreshShop() {
         shopInventory = [];
         const shuffled = [...SEEDS_DB];
@@ -438,32 +320,47 @@
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         shopInventory = shuffled.slice(0,5);
-        shopRefreshCounter = 300; // 5 минут
+        shopRefreshCounter = 300;
         renderShop();
         saveGame();
     }
 
-    // мутация с учётом погоды и питомцев
+    function startShopTimer() {
+        if(shopTimerInterval) clearInterval(shopTimerInterval);
+        shopTimerInterval = setInterval(() => {
+            if(shopRefreshCounter > 0) {
+                shopRefreshCounter--;
+                updateShopTimerDisplay();
+                if(shopRefreshCounter <= 0) {
+                    refreshShop();
+                }
+            }
+        }, 1000);
+    }
+
+    function updateShopTimerDisplay() {
+        const timerSpan = document.getElementById("shopTimer");
+        if(timerSpan) {
+            let mins = Math.floor(shopRefreshCounter / 60);
+            let secs = shopRefreshCounter % 60;
+            timerSpan.innerText = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+        }
+    }
+
     function applyMutation(seedId, weather, petList) {
-        let baseChance = 0.06;
-        let finalMut = null;
         let availableMuts = Object.entries(MUTATIONS).filter(([key, m]) => !m.weather || m.weather === weather);
         for(let [mutId, mut] of availableMuts) {
             let chance = mut.chance;
             for(let pet of petList) {
                 if(pet.owned && pet.bonus === mutId) chance += pet.bonusChance;
             }
-            if(Math.random() < chance) {
-                finalMut = mutId;
-                break;
-            }
+            if(Math.random() < chance) return mutId;
         }
-        if(Math.random() < 0.03 && !finalMut) finalMut = "gold";
-        if(Math.random() < 0.02 && !finalMut) finalMut = "rainbow";
-        return finalMut;
+        if(Math.random() < 0.03) return "gold";
+        if(Math.random() < 0.02) return "rainbow";
+        return null;
     }
 
-    // посадка
     function plantSeed(plotIdx, seedId) {
         if(garden[plotIdx] !== null) return;
         if(!player.inventory[seedId] || player.inventory[seedId] <= 0) return;
@@ -507,10 +404,7 @@
         if(p.mutation && MUTATIONS[p.mutation]) mult = MUTATIONS[p.mutation].multiplier;
         let reward = Math.floor(value * mult);
         player.sheckles += reward;
-
-        // шанс вернуть семя
         if(Math.random() < 0.35) player.inventory[p.seedId]++;
-
         if(seedDef.multiHarvest && p.multiHarvestCount !== undefined && p.multiHarvestCount < 5) {
             p.multiHarvestCount = (p.multiHarvestCount || 0) + 1;
             p.growth = 0;
@@ -531,6 +425,8 @@
             player.inventory[seedId]++;
             renderAll();
             saveGame();
+        } else {
+            alert("Не хватает золота!");
         }
     }
 
@@ -542,10 +438,11 @@
             pet.owned = true;
             renderAll();
             saveGame();
+        } else {
+            alert("Не хватает золота!");
         }
     }
 
-    // погода (циклы)
     function startWeatherCycle() {
         const weathers = [
             { id: "sunny", name: "☀️ Солнечно", icon: "☀️", duration: 90 },
@@ -630,7 +527,6 @@
             grid.appendChild(plotDiv);
         }
 
-        // события
         document.querySelectorAll("[data-water]").forEach(btn => {
             btn.onclick = (e) => { e.stopPropagation(); waterPlant(parseInt(btn.dataset.water)); };
         });
@@ -663,9 +559,8 @@
             const div = document.createElement("div");
             div.className = "pet-card";
             if(!pet.owned) {
-                div.style.opacity = "0.7";
                 div.onclick = () => buyPet(pet.id);
-                div.innerHTML = `${pet.emoji} ${pet.name} <span style="background:black;padding:2px 8px;border-radius:30px;">💰${pet.price.toLocaleString()}</span> <button>Купить</button>`;
+                div.innerHTML = `${pet.emoji} ${pet.name} <span style="background:black;padding:2px 8px;border-radius:30px;">💰${pet.price.toLocaleString()}</span>`;
             } else {
                 div.innerHTML = `${pet.emoji} ${pet.name} <span style="color:#ffd966;">✅ активен</span>`;
             }
@@ -680,20 +575,10 @@
         renderPlots();
         renderShop();
         renderPets();
-        if(document.getElementById("shopTimer")) {
-            let mins = Math.floor(shopRefreshCounter/60);
-            let secs = shopRefreshCounter%60;
-            document.getElementById("shopTimer").innerText = `${mins}:${secs<10?'0'+secs:secs}`;
-        }
+        updateShopTimerDisplay();
     }
 
-    // таймеры обновления
     setInterval(() => {
-        if(shopRefreshCounter > 0) {
-            shopRefreshCounter--;
-            if(shopRefreshCounter <= 0) refreshShop();
-            renderAll();
-        }
         for(let i=0;i<garden.length;i++) {
             const p = garden[i];
             if(p && !p.isHarvestable) {
@@ -711,7 +596,6 @@
     window.onload = () => {
         loadGame();
         startWeatherCycle();
-        setInterval(() => { renderAll(); saveGame(); }, 3000);
     };
 </script>
 </body>
