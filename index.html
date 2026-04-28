@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🌱 Grow a Garden — 2D ферма с мутациями</title>
+    <title>🌱 Remode Garden — 2D ферма с мутациями</title>
     <style>
         * {
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation; /* запрещает масштабирование при двойном тапе */
+            touch-action: manipulation;
         }
 
         body {
@@ -18,12 +18,6 @@
             font-family: 'Segoe UI', 'Quicksand', system-ui, sans-serif;
             padding: 16px;
             overflow-x: hidden;
-            touch-action: pan-y pinch-zoom; /* разрешаем скролл, но pinch-zoom оставляем (браузерное) - на самом деле лучше запретить */
-        }
-        
-        /* полный запрет зума на всех элементах */
-        .game-container, .plot, button, .seed-card, .shop-section, .pets-section {
-            touch-action: manipulation;
         }
 
         .game-container {
@@ -181,7 +175,10 @@
             margin-top: 10px;
         }
         .pets-flex { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 10px; }
-        .pet-card { background: #3e2a1f; border-radius: 50px; padding: 8px 18px; display: flex; align-items: center; gap: 12px; border: 1px solid gold; cursor: pointer; touch-action: manipulation; }
+        .pet-card { background: #3e2a1f; border-radius: 50px; padding: 8px 18px; display: flex; align-items: center; gap: 12px; border: 1px solid gold; cursor: pointer; touch-action: manipulation; transition: 0.1s; }
+        .pet-card:active { transform: scale(0.96); }
+        .pet-owned { border-color: #44ff44; background: #2a5a2a; }
+        .pet-price { background: #000000aa; padding: 2px 8px; border-radius: 30px; font-size: 0.7rem; }
         
         button, .seed-card, .plot, .pet-card {
             touch-action: manipulation;
@@ -213,12 +210,13 @@
     <div class="plots-grid" id="plotsGrid"></div>
 
     <div class="pets-section">
-        <div style="display: flex; gap: 10px; align-items: center;"><span>🐕 Питомцы (пассивные бонусы)</span></div>
+        <div style="display: flex; gap: 10px; align-items: center;"><span>🐕 Питомцы (пассивные бонусы к мутациям)</span></div>
         <div class="pets-flex" id="petsList"></div>
     </div>
 </div>
 
 <script>
+    // ==================== ДАННЫЕ ====================
     const SEEDS_DB = [
         { id: "carrot", name: "🥕 Морковь", emoji: "🥕", price: 10, baseValue: 20, growthTime: 8, rarity: "Common", multiHarvest: false },
         { id: "strawberry", name: "🍓 Клубника", emoji: "🍓", price: 50, baseValue: 15, growthTime: 12, rarity: "Common", multiHarvest: true, regrowTime: 6 },
@@ -241,29 +239,40 @@
         "celestial": { name: "🌟 Небесная", emoji: "🌟", multiplier: 120, chance: 0.02 }
     };
 
-    const PETS = [
-        { id: "polarbear", name: "🐻‍❄️ Белый медведь", emoji: "🐻‍❄️", bonus: "frozen", bonusChance: 0.10, owned: true },
-        { id: "macaw", name: "🦜 Ара", emoji: "🦜", bonus: "rainbow", bonusChance: 0.16, owned: false, price: 150000 },
-        { id: "dragonfly", name: "🐉 Стрекоза", emoji: "🦋", bonus: "gold", bonusChance: 0.12, owned: false, price: 750000 },
-        { id: "kitsune", name: "🦊 Кицунэ", emoji: "🦊", bonus: "celestial", bonusChance: 0.05, owned: false, price: 5000000 }
+    // Питомцы с полной инфой и owned
+    let PETS = [
+        { id: "polarbear", name: "Белый медведь", emoji: "🐻‍❄️", bonus: "frozen", bonusChance: 0.10, price: 0, owned: true },
+        { id: "macaw", name: "Ара", emoji: "🦜", bonus: "rainbow", bonusChance: 0.16, price: 150000, owned: false },
+        { id: "dragonfly", name: "Стрекоза", emoji: "🦋", bonus: "gold", bonusChance: 0.12, price: 750000, owned: false },
+        { id: "kitsune", name: "Кицунэ", emoji: "🦊", bonus: "celestial", bonusChance: 0.05, price: 5000000, owned: false }
     ];
 
+    // ==================== СОСТОЯНИЕ ИГРЫ ====================
     let garden = [];
     let player = { sheckles: 15000, inventory: {} };
     let currentWeather = "sunny";
-    let weatherInterval;
     let shopRefreshCounter = 300;
     let shopInventory = [];
     let shopTimerInterval;
 
+    // Инициализация инвентаря
     SEEDS_DB.forEach(seed => { player.inventory[seed.id] = 0; });
     player.inventory["carrot"] = 3;
     player.inventory["strawberry"] = 1;
 
+    // ==================== СОХРАНЕНИЕ И ЗАГРУЗКА ====================
     function saveGame() {
-        localStorage.setItem("grow2d_save", JSON.stringify({
-            garden, player, currentWeather, shopInventory, lastTime: Date.now(), shopRefreshCounter
-        }));
+        // Сохраняем ВСЁ: сад, игрока, погоду, магазин, питомцев, таймер
+        const saveData = {
+            garden: garden,
+            player: player,
+            currentWeather: currentWeather,
+            shopInventory: shopInventory,
+            shopRefreshCounter: shopRefreshCounter,
+            pets: PETS.map(p => ({ id: p.id, owned: p.owned })), // сохраняем только owned статус
+            lastTime: Date.now()
+        };
+        localStorage.setItem("grow2d_save", JSON.stringify(saveData));
     }
 
     function loadGame() {
@@ -276,6 +285,20 @@
                 currentWeather = data.currentWeather || "sunny";
                 shopInventory = data.shopInventory || [];
                 shopRefreshCounter = data.shopRefreshCounter ?? 300;
+                
+                // Восстанавливаем статус питомцев
+                if(data.pets && Array.isArray(data.pets)) {
+                    data.pets.forEach(savedPet => {
+                        const pet = PETS.find(p => p.id === savedPet.id);
+                        if(pet) pet.owned = savedPet.owned;
+                    });
+                }
+                
+                // Восстанавливаем инвентарь
+                if(!player.inventory) player.inventory = {};
+                SEEDS_DB.forEach(s => { if(player.inventory[s.id]===undefined) player.inventory[s.id]=0; });
+                
+                // Офлайн-рост
                 const last = data.lastTime || Date.now();
                 const deltaSec = Math.min(86400, (Date.now() - last) / 1000);
                 if(deltaSec > 0 && garden.length) {
@@ -292,11 +315,15 @@
                         }
                     }
                 }
-                if(!player.inventory) player.inventory = {};
-                SEEDS_DB.forEach(s => { if(player.inventory[s.id]===undefined) player.inventory[s.id]=0; });
+                
                 renderAll();
-            } catch(e) { initFresh(); }
-        } else { initFresh(); }
+            } catch(e) { 
+                console.log("Ошибка загрузки:", e);
+                initFresh(); 
+            }
+        } else { 
+            initFresh(); 
+        }
         renderAll();
         startShopTimer();
     }
@@ -309,9 +336,17 @@
         SEEDS_DB.forEach(seed => { player.inventory[seed.id] = 0; });
         player.inventory["carrot"] = 3;
         player.inventory["strawberry"] = 1;
+        
+        // Сброс питомцев (только белый медведь стартовый)
+        PETS.forEach(pet => {
+            pet.owned = (pet.id === "polarbear");
+        });
+        
         refreshShop();
+        saveGame();
     }
 
+    // ==================== МАГАЗИН ====================
     function refreshShop() {
         shopInventory = [];
         const shuffled = [...SEEDS_DB];
@@ -347,6 +382,7 @@
         }
     }
 
+    // ==================== МУТАЦИИ ====================
     function applyMutation(seedId, weather, petList) {
         let availableMuts = Object.entries(MUTATIONS).filter(([key, m]) => !m.weather || m.weather === weather);
         for(let [mutId, mut] of availableMuts) {
@@ -361,6 +397,7 @@
         return null;
     }
 
+    // ==================== ГРЯДКИ ====================
     function plantSeed(plotIdx, seedId) {
         if(garden[plotIdx] !== null) return;
         if(!player.inventory[seedId] || player.inventory[seedId] <= 0) return;
@@ -430,6 +467,7 @@
         }
     }
 
+    // ==================== ПИТОМЦЫ ====================
     function buyPet(petId) {
         const pet = PETS.find(p => p.id === petId);
         if(!pet || pet.owned) return;
@@ -438,11 +476,13 @@
             pet.owned = true;
             renderAll();
             saveGame();
+            alert(`🎉 Вы купили ${pet.name}! Теперь он даёт бонус к мутации "${pet.bonus}"`);
         } else {
-            alert("Не хватает золота!");
+            alert(`Не хватает золота! Нужно ${pet.price.toLocaleString()}💰`);
         }
     }
 
+    // ==================== ПОГОДА ====================
     function startWeatherCycle() {
         const weathers = [
             { id: "sunny", name: "☀️ Солнечно", icon: "☀️", duration: 90 },
@@ -463,6 +503,7 @@
         updateWeather();
     }
 
+    // ==================== ОТРИСОВКА ====================
     function renderShop() {
         const container = document.getElementById("shopList");
         if(!container) return;
@@ -558,11 +599,12 @@
         PETS.forEach(pet => {
             const div = document.createElement("div");
             div.className = "pet-card";
-            if(!pet.owned) {
-                div.onclick = () => buyPet(pet.id);
-                div.innerHTML = `${pet.emoji} ${pet.name} <span style="background:black;padding:2px 8px;border-radius:30px;">💰${pet.price.toLocaleString()}</span>`;
+            if(pet.owned) {
+                div.classList.add("pet-owned");
+                div.innerHTML = `${pet.emoji} ${pet.name} <span style="color:#44ff44;">✅ +${Math.round(pet.bonusChance*100)}% к ${pet.bonus}</span>`;
             } else {
-                div.innerHTML = `${pet.emoji} ${pet.name} <span style="color:#ffd966;">✅ активен</span>`;
+                div.onclick = () => buyPet(pet.id);
+                div.innerHTML = `${pet.emoji} ${pet.name} <span class="pet-price">💰${pet.price.toLocaleString()}</span> <span style="font-size:0.7rem;">+${Math.round(pet.bonusChance*100)}% к ${pet.bonus}</span>`;
             }
             container.appendChild(div);
         });
@@ -578,6 +620,7 @@
         updateShopTimerDisplay();
     }
 
+    // ==================== ФОНОВЫЕ ПРОЦЕССЫ ====================
     setInterval(() => {
         for(let i=0;i<garden.length;i++) {
             const p = garden[i];
@@ -593,6 +636,7 @@
         saveGame();
     }, 2000);
 
+    // ==================== ЗАПУСК ====================
     window.onload = () => {
         loadGame();
         startWeatherCycle();
